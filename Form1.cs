@@ -1,20 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
+﻿/**
+ * author: W.T.
+ * AE language switch tool
+ * date: 2020.6.1
+ */
+using Microsoft.Win32; //注册表操作
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using System.IO;
-using Microsoft.Win32; //注册表操作
-using System.Runtime.InteropServices;
-using System.Diagnostics;
 
 namespace AELanguageSwitcher
 {
     public partial class Form1 : Form
     {
+        //TODO: 新版AE 2020 的配置文件使用XML保存，在 Support Files\AMT 目录下的application.xml文件的<Data key="installedLanguages">zh_CN</Data>节点中
         private const string AE_INSTALLPATH = @"SOFTWARE\Adobe\After Effects";
         private const string AE_ConfigFileName = "painter.ini";
         private const string AE_ExecutionName = "AfterFX.exe";
@@ -150,36 +151,6 @@ namespace AELanguageSwitcher
                 ReadConfig(p);
             }
         }
-    }
-
-    /// <summary>
-    /// INI文件操作类
-    /// </summary>
-    public class ProfileHelper
-    {
-        /// <summary>
-        /// 读 INI 文件
-        /// </summary>
-        /// <param name="lpAppName">节点名称</param>
-        /// <param name="lpKeyName">项名称</param>
-        /// <param name="lpDefault">没有找到指定项时的返回值</param>
-        /// <param name="lpReturnString">指定一个字符缓冲区，长度最少为nSize</param>
-        /// <param name="nSize">指定复制到字符缓冲区的最大字符数量</param>
-        /// <param name="lpFileName">ini文件路径</param>
-        /// <returns>复制到字符缓冲区的字节数，不包括中止字符</returns>
-        [DllImport("kernel32")]
-        public static extern int GetPrivateProfileString(string lpAppName, string lpKeyName, string lpDefault, StringBuilder lpReturnString, int nSize, string lpFileName);
-
-        /// <summary>
-        /// 写 INI 文件
-        /// </summary>
-        /// <param name="lpSectionName">要写入的节点名称</param>
-        /// <param name="lpKeyName">要写入的项目名称</param>
-        /// <param name="lpString">要写入的字符串</param>
-        /// <param name="lpFileName">ini文件的路径</param>
-        /// <returns>零表示失败，非零表示成功</returns>
-        [DllImport("kernel32")]
-        public static extern int WritePrivateProfileString(string lpSectionName, string lpKeyName, string lpString, string lpFileName);
     }
 
 }
