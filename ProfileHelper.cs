@@ -31,5 +31,6 @@ namespace AELanguageSwitcher
         /// <returns>零表示失败，非零表示成功</returns>
         [DllImport("kernel32")]
         public static extern int WritePrivateProfileString(string lpSectionName, string lpKeyName, string lpString, string lpFileName);
+
     }
 }

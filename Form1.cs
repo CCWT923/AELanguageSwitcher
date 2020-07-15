@@ -10,6 +10,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
+using System.Xml;
 
 namespace AELanguageSwitcher
 {
@@ -17,11 +18,12 @@ namespace AELanguageSwitcher
     {
         //TODO: 新版AE 2020 的配置文件使用XML保存，在 Support Files\AMT 目录下的application.xml文件的<Data key="installedLanguages">zh_CN</Data>节点中
         private const string AE_INSTALLPATH = @"SOFTWARE\Adobe\After Effects";
-        private const string AE_ConfigFileName = "painter.ini";
         private const string AE_ExecutionName = "AfterFX.exe";
         private const string AE_Lang_EN = "en_US";
         private const string AE_Lang_CN = "zh_CN";
         private const string AppConfigPath = "AppConfig.ini";
+        private const string AE_ProfileName1 = "\\painter.ini";
+        private const string AE_ProfileName2 = "\\AMT\\application.xml";
 
         public Form1()
         {
@@ -42,8 +44,14 @@ namespace AELanguageSwitcher
             {
                 TextBox_AEInstallPath.Text = GetAEInstallPath();
             }
-            string profile = TextBox_AEInstallPath.Text + "\\" + AE_ConfigFileName;
-            ReadConfig(profile);
+            if(File.Exists(AE_ProfileName1))
+            {
+                ReadConfig(AE_ProfileName1, "ini");
+            }
+            else if(File.Exists(AE_ProfileName2))
+            {
+
+            }
         }
         /// <summary>
         /// 从注册表中读取AE安装路径
@@ -80,34 +88,57 @@ namespace AELanguageSwitcher
                 //保存路径
                 ProfileHelper.WritePrivateProfileString("Main", "Path", dialog.SelectedPath, AppConfigPath);
 
-                string profile = TextBox_AEInstallPath.Text + "\\" + AE_ConfigFileName;
-                ReadConfig(profile);
             }
         }
 
-        private void ReadConfig(string profile)
+        private void ReadConfig(string profileName, string profileType)
         {
-            if (File.Exists(profile))
+            if (File.Exists(profileName))
             {
-                File.SetAttributes(profile, FileAttributes.Normal);
-                int size = 512;
-                StringBuilder sb = new StringBuilder(size);
-                ProfileHelper.WritePrivateProfileString("Config", "ForceLanguage", "1", profile);
-                ProfileHelper.GetPrivateProfileString("Config", "Language", "", sb, size, profile);
-                if (sb.ToString() == "")
+                if(profileType == "ini")
                 {
-                    ComboBox_LanguageList.SelectedIndex = 0;
+                    File.SetAttributes(profileName, FileAttributes.Normal);
+                    int size = 512;
+                    StringBuilder sb = new StringBuilder(size);
+                    ProfileHelper.WritePrivateProfileString("Config", "ForceLanguage", "1", profileName);
+                    ProfileHelper.GetPrivateProfileString("Config", "Language", "", sb, size, profileName);
+                    if (sb.ToString() == "")
+                    {
+                        ComboBox_LanguageList.SelectedIndex = 0;
+                    }
+                    else if (sb.ToString().Trim().ToUpper() == "ZH_CN")
+                    {
+                        ComboBox_LanguageList.SelectedIndex = 1;
+                    }
+                    else if (sb.ToString().Trim().ToUpper() == "EN_US")
+                    {
+                        ComboBox_LanguageList.SelectedIndex = 2;
+                    }
                 }
-                else if (sb.ToString().Trim().ToUpper() == "ZH_CN")
+                else if(profileType == "xml")
                 {
-                    ComboBox_LanguageList.SelectedIndex = 1;
+                    //TODO: 读取xml文件
+                    using (XmlReader reader = XmlReader.Create(profileName))
+                    {
+                        while(reader.Read())
+                        {
+                            if(reader.NodeType == XmlNodeType.Element)
+                            {
+                                if(reader.Name == "Data")
+                                {
+                                    if(reader.GetAttribute("key") == "installedLanguages")
+                                    {
+                                        //TODO: 读取xml文件
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                else if (sb.ToString().Trim().ToUpper() == "EN_US")
-                {
-                    ComboBox_LanguageList.SelectedIndex = 2;
-                }
+
             }
         }
+
 
 
         private void Btn_SetLanguage_Click(object sender, EventArgs e)
