@@ -15,7 +15,7 @@ namespace AELanguageSwitcher
 {
     public partial class Form1 : Form
     {
-        private const string AE_INSTALLPATH = @"HKEY_LOCAL_MACHINE\SOFTWARE\Adobe\After Effects";
+        private const string AE_INSTALLPATH = @"SOFTWARE\Adobe\After Effects";
         private const string AE_ConfigFileName = "painter.ini";
         private const string AE_ExecutionName = "AfterFX.exe";
         private const string AE_Lang_EN = "en_US";
@@ -29,23 +29,34 @@ namespace AELanguageSwitcher
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            //TextBox_AEInstallPath.Text = GetAEInstallPath();
+            
+            //从已保存的配置文件中读取数据
             if(File.Exists(AppConfigPath))
             {
                 StringBuilder sb = new StringBuilder();
                 ProfileHelper.GetPrivateProfileString("Main", "Path", "", sb, 512, AppConfigPath);
                 TextBox_AEInstallPath.Text = sb.ToString();
             }
+            else
+            {
+                TextBox_AEInstallPath.Text = GetAEInstallPath();
+            }
+            string profile = TextBox_AEInstallPath.Text + "\\" + AE_ConfigFileName;
+            ReadConfig(profile);
         }
-
+        /// <summary>
+        /// 从注册表中读取AE安装路径
+        /// </summary>
+        /// <returns></returns>
         private string GetAEInstallPath()
         {
-            RegistryKey AEPathFinder;
+            RegistryKey localKey = null;
             try
             {
-                //使用只读模式打开
-                AEPathFinder = Registry.LocalMachine.OpenSubKey(AE_INSTALLPATH,false);
-                var finder1 = AEPathFinder.OpenSubKey(AEPathFinder.GetSubKeyNames()[0]);
+                //判断系统架构，然后选择打开32位还是64位注册表
+                localKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Registry32);
+                var AEPath = localKey.OpenSubKey(AE_INSTALLPATH, false);
+                var finder1 = AEPath.OpenSubKey(AEPath.GetSubKeyNames()[0],false);
 
                 return finder1.GetValue("InstallPath", string.Empty).ToString();
             }
