@@ -26,6 +26,8 @@ namespace AELanguageSwitcher
         private const string AE_ProfileName1 = "painter.ini";
         private const string AE_ProfileName2 = "AMT\\application.xml";
         private string AE_InstallPath = "";
+        private ProfileType CurrentProfileType = ProfileType.ini;
+        private string AE_ConfigFileName = "";
 
         public Form1()
         {
@@ -42,28 +44,48 @@ namespace AELanguageSwitcher
                 ProfileHelper.GetPrivateProfileString("Main", "Path", "", sb, 512, AppConfigPath);
                 if(File.Exists( sb.ToString()))
                 {
-                    TextBox_AEInstallPath.Text = sb.ToString();
+                    Lbl_AEInstallPath.Text = sb.ToString();
                 }
                 else
                 {
-                    TextBox_AEInstallPath.Text = GetAEInstallPath();
+                    Lbl_AEInstallPath.Text = GetAEInstallPath();
                 }
             }
             else
             {
-                TextBox_AEInstallPath.Text = GetAEInstallPath();
+                Lbl_AEInstallPath.Text = GetAEInstallPath();
             }
-            AE_InstallPath = TextBox_AEInstallPath.Text;
+            AE_InstallPath = Lbl_AEInstallPath.Text;
 
-            TextBox_AEInstallPath.Select(0, 0);
 
             if(File.Exists(AE_InstallPath + AE_ProfileName1))
             {
-                ReadConfig(AE_InstallPath + AE_ProfileName1, ProfileType.ini);
+                CurrentProfileType = ProfileType.ini;
+                AE_ConfigFileName = AE_InstallPath + AE_ProfileName1;
+                ReadConfig(AE_ConfigFileName, ProfileType.ini);
             }
             else if(File.Exists(AE_InstallPath + AE_ProfileName2))
             {
-                ReadConfig(AE_InstallPath + AE_ProfileName2, ProfileType.xml);
+                CurrentProfileType = ProfileType.xml;
+                AE_ConfigFileName = AE_InstallPath + AE_ProfileName2;
+                ReadConfig(AE_ConfigFileName, ProfileType.xml);
+            }
+            else
+            {
+                Lbl_AEInstallPath.Text = "请单击选择AE安装路径";
+            }
+
+        }
+
+        private void CheckFileExists(string file)
+        {
+            if(File.Exists(file))
+            {
+                Btn_SetLanguage.Enabled = true;
+            }
+            else
+            {
+                Btn_SetLanguage.Enabled = false;
             }
         }
         /// <summary>
@@ -93,16 +115,31 @@ namespace AELanguageSwitcher
             FolderBrowserDialog dialog = new FolderBrowserDialog();
             if(dialog.ShowDialog() == DialogResult.OK)
             {
-                TextBox_AEInstallPath.Text = dialog.SelectedPath;
-                if(!File.Exists(AppConfigPath))
-                {
-                    File.Create(AppConfigPath);
-                }
-                //保存路径
-                ProfileHelper.WritePrivateProfileString("Main", "Path", dialog.SelectedPath, AppConfigPath);
+                Lbl_AEInstallPath.Text = dialog.SelectedPath;
+            }
 
+
+            AE_InstallPath = Lbl_AEInstallPath.Text;
+
+
+            if (File.Exists(AE_InstallPath + AE_ProfileName1))
+            {
+                CurrentProfileType = ProfileType.ini;
+                AE_ConfigFileName = AE_InstallPath + AE_ProfileName1;
+                ReadConfig(AE_ConfigFileName, ProfileType.ini);
+            }
+            else if (File.Exists(AE_InstallPath + AE_ProfileName2))
+            {
+                CurrentProfileType = ProfileType.xml;
+                AE_ConfigFileName = AE_InstallPath + AE_ProfileName2;
+                ReadConfig(AE_ConfigFileName, ProfileType.xml);
+            }
+            else
+            {
+                Lbl_AEInstallPath.Text = "请单击选择AE安装路径";
             }
         }
+
         private void ReadConfig(string profileName, ProfileType profileType)
         {
             if (File.Exists(profileName))
@@ -116,20 +153,23 @@ namespace AELanguageSwitcher
                     ProfileHelper.GetPrivateProfileString("Config", "Language", "", sb, size, profileName);
                     if (sb.ToString() == "")
                     {
-                        ComboBox_LanguageList.SelectedIndex = 0;
+                        Lbl_CurrentLanguage.Text = "未知";
+                        Lbl_CurrentLanguage.Tag = string.Empty;
                     }
                     else if (sb.ToString().Trim() == AE_Lang_CN)
                     {
-                        ComboBox_LanguageList.SelectedIndex = 1;
+                        Lbl_CurrentLanguage.Text = "简体中文";
+                        Lbl_CurrentLanguage.Tag = AE_Lang_CN;
                     }
                     else if (sb.ToString().Trim() == AE_Lang_EN)
                     {
-                        ComboBox_LanguageList.SelectedIndex = 2;
+                        Lbl_CurrentLanguage.Text = "英语";
+                        Lbl_CurrentLanguage.Tag = AE_Lang_EN;
                     }
                 }
                 else if(profileType ==  ProfileType.xml)
                 {
-                    //TODO: 读取xml文件
+                    //读取xml文件
                     using (XmlReader reader = XmlReader.Create(profileName))
                     {
                         while(reader.Read())
@@ -145,15 +185,18 @@ namespace AELanguageSwitcher
                                             string v = reader.Value;
                                             if (v.ToUpper() == AE_Lang_CN.ToUpper())
                                             {
-                                                ComboBox_LanguageList.SelectedIndex = 1;
+                                                Lbl_CurrentLanguage.Text = "简体中文";
+                                                Lbl_CurrentLanguage.Tag = AE_Lang_CN;
                                             }
                                             else if (v.ToUpper() == AE_Lang_EN.ToUpper())
                                             {
-                                                ComboBox_LanguageList.SelectedIndex = 2;
+                                                Lbl_CurrentLanguage.Text = "英语";
+                                                Lbl_CurrentLanguage.Tag = AE_Lang_EN;
                                             }
                                             else
                                             {
-                                                ComboBox_LanguageList.SelectedIndex = 0;
+                                                Lbl_CurrentLanguage.Text = "未知";
+                                                Lbl_CurrentLanguage.Tag = string.Empty;
                                             }
                                         }
                                     }
@@ -172,13 +215,17 @@ namespace AELanguageSwitcher
                 if(profileType == ProfileType.ini)
                 {
                     //写ini配置文件
-                    if (ComboBox_LanguageList.SelectedIndex == 1)
+                    if (Lbl_CurrentLanguage.Tag.ToString() == AE_Lang_EN)
                     {
-                        ProfileHelper.WritePrivateProfileString("Config", "Language", "zh_CN", AE_ProfileName1);
+                        var a = ProfileHelper.WritePrivateProfileString("Config", "Language", "zh_CN", profileName);
                     }
-                    else if (ComboBox_LanguageList.SelectedIndex == 2)
+                    else if (Lbl_CurrentLanguage.Tag.ToString() == AE_Lang_CN)
                     {
-                        ProfileHelper.WritePrivateProfileString("Config", "Language", "en_US", AE_ProfileName1);
+                        var a = ProfileHelper.WritePrivateProfileString("Config", "Language", "en_US", profileName);
+                    }
+                    else
+                    {
+                        MessageBox.Show("未知错误！");
                     }
                 }
                 else if(profileType == ProfileType.xml)
@@ -186,11 +233,11 @@ namespace AELanguageSwitcher
                     XmlDocument document = new XmlDocument();
                     document.Load(profileName);
                     var target = document.SelectSingleNode("/Configuration/Payload/Data[@key='installedLanguages']");
-                    if (ComboBox_LanguageList.SelectedIndex == 1)
+                    if (Lbl_CurrentLanguage.Tag.ToString() == AE_Lang_EN)
                     {
                         target.InnerText = AE_Lang_CN;
                     }
-                    else if (ComboBox_LanguageList.SelectedIndex == 2)
+                    else if (Lbl_CurrentLanguage.Tag.ToString() == AE_Lang_CN)
                     {
                         target.InnerText = AE_Lang_EN;
                     }
@@ -200,13 +247,23 @@ namespace AELanguageSwitcher
         }
 
 
-
         private void Btn_SetLanguage_Click(object sender, EventArgs e)
         {
-            WriteConfig(AE_InstallPath + AE_ProfileName2, ProfileType.xml);
-            if (CheckBox_LaunchApp.Checked == true)
+            
+            if(CurrentProfileType == ProfileType.ini)
             {
-                string p = TextBox_AEInstallPath.Text + "\\" + AE_ExecutionName;
+                WriteConfig(AE_ConfigFileName, ProfileType.ini);
+            }
+            else if(CurrentProfileType == ProfileType.xml)
+            {
+                WriteConfig(AE_ConfigFileName, ProfileType.xml);
+            }
+
+            ReadConfig(AE_ConfigFileName, CurrentProfileType);
+
+            if (ModifierKeys == Keys.Control)
+            {
+                string p = Lbl_AEInstallPath.Text + "\\" + AE_ExecutionName;
                 if(File.Exists(p))
                 {
                     try
@@ -219,6 +276,24 @@ namespace AELanguageSwitcher
                     }
                 }
             }
+        }
+
+        private void Lbl_AEInstallPath_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        /// <summary>
+        /// 保存路径配置
+        /// </summary>
+        private void SavePathConfig()
+        {
+            if (!File.Exists(AppConfigPath))
+            {
+                File.Create(AppConfigPath);
+            }
+            //保存路径
+            ProfileHelper.WritePrivateProfileString("Main", "Path",Lbl_AEInstallPath.Text, AppConfigPath);
         }
     }
     /// <summary>
