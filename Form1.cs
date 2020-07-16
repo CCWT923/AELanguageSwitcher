@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace AELanguageSwitcher
 {
@@ -58,11 +59,11 @@ namespace AELanguageSwitcher
 
             if(File.Exists(AE_InstallPath + AE_ProfileName1))
             {
-                ReadConfig(AE_InstallPath + AE_ProfileName1, "ini");
+                ReadConfig(AE_InstallPath + AE_ProfileName1, ProfileType.ini);
             }
             else if(File.Exists(AE_InstallPath + AE_ProfileName2))
             {
-                ReadConfig(AE_InstallPath + AE_ProfileName2, "xml");
+                ReadConfig(AE_InstallPath + AE_ProfileName2, ProfileType.xml);
             }
         }
         /// <summary>
@@ -102,12 +103,11 @@ namespace AELanguageSwitcher
 
             }
         }
-
-        private void ReadConfig(string profileName, string profileType)
+        private void ReadConfig(string profileName, ProfileType profileType)
         {
             if (File.Exists(profileName))
             {
-                if(profileType == "ini")
+                if(profileType ==  ProfileType.ini)
                 {
                     File.SetAttributes(profileName, FileAttributes.Normal);
                     int size = 512;
@@ -118,16 +118,16 @@ namespace AELanguageSwitcher
                     {
                         ComboBox_LanguageList.SelectedIndex = 0;
                     }
-                    else if (sb.ToString().Trim().ToUpper() == "ZH_CN")
+                    else if (sb.ToString().Trim() == AE_Lang_CN)
                     {
                         ComboBox_LanguageList.SelectedIndex = 1;
                     }
-                    else if (sb.ToString().Trim().ToUpper() == "EN_US")
+                    else if (sb.ToString().Trim() == AE_Lang_EN)
                     {
                         ComboBox_LanguageList.SelectedIndex = 2;
                     }
                 }
-                else if(profileType == "xml")
+                else if(profileType ==  ProfileType.xml)
                 {
                     //TODO: 读取xml文件
                     using (XmlReader reader = XmlReader.Create(profileName))
@@ -143,11 +143,11 @@ namespace AELanguageSwitcher
                                         if(reader.Read())
                                         {
                                             string v = reader.Value;
-                                            if (v.ToUpper() == "ZH_CN")
+                                            if (v.ToUpper() == AE_Lang_CN.ToUpper())
                                             {
                                                 ComboBox_LanguageList.SelectedIndex = 1;
                                             }
-                                            else if (v.ToUpper() == "EN_US")
+                                            else if (v.ToUpper() == AE_Lang_EN.ToUpper())
                                             {
                                                 ComboBox_LanguageList.SelectedIndex = 2;
                                             }
@@ -156,14 +156,46 @@ namespace AELanguageSwitcher
                                                 ComboBox_LanguageList.SelectedIndex = 0;
                                             }
                                         }
-                                        
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
 
+        private void WriteConfig(string profileName, ProfileType profileType)
+        {
+            if(File.Exists(profileName))
+            {
+                if(profileType == ProfileType.ini)
+                {
+                    //写ini配置文件
+                    if (ComboBox_LanguageList.SelectedIndex == 1)
+                    {
+                        ProfileHelper.WritePrivateProfileString("Config", "Language", "zh_CN", AE_ProfileName1);
+                    }
+                    else if (ComboBox_LanguageList.SelectedIndex == 2)
+                    {
+                        ProfileHelper.WritePrivateProfileString("Config", "Language", "en_US", AE_ProfileName1);
+                    }
+                }
+                else if(profileType == ProfileType.xml)
+                {
+                    XmlDocument document = new XmlDocument();
+                    document.Load(profileName);
+                    var target = document.SelectSingleNode("/Configuration/Payload/Data[@key='installedLanguages']");
+                    if (ComboBox_LanguageList.SelectedIndex == 1)
+                    {
+                        target.InnerText = AE_Lang_CN;
+                    }
+                    else if (ComboBox_LanguageList.SelectedIndex == 2)
+                    {
+                        target.InnerText = AE_Lang_EN;
+                    }
+                    document.Save(profileName);
+                }
             }
         }
 
@@ -171,18 +203,7 @@ namespace AELanguageSwitcher
 
         private void Btn_SetLanguage_Click(object sender, EventArgs e)
         {
-            if(File.Exists(AE_ProfileName1))
-            {
-                if(ComboBox_LanguageList.SelectedIndex == 1)
-                {
-                    ProfileHelper.WritePrivateProfileString("Config", "Language", "zh_CN", AE_ProfileName1);
-                }
-                else if(ComboBox_LanguageList.SelectedIndex == 2)
-                {
-                    ProfileHelper.WritePrivateProfileString("Config", "Language", "en_US", AE_ProfileName1);
-                }
-            }
-
+            WriteConfig(AE_InstallPath + AE_ProfileName2, ProfileType.xml);
             if (CheckBox_LaunchApp.Checked == true)
             {
                 string p = TextBox_AEInstallPath.Text + "\\" + AE_ExecutionName;
@@ -196,10 +217,16 @@ namespace AELanguageSwitcher
                     {
 
                     }
-                    
                 }
             }
         }
     }
-
+    /// <summary>
+    /// 配置文件类型：xml或者ini
+    /// </summary>
+    enum ProfileType
+    {
+        ini,
+        xml
+    }
 }
