@@ -17,13 +17,14 @@ namespace AELanguageSwitcher
     public partial class Form1 : Form
     {
         //TODO: 新版AE 2020 的配置文件使用XML保存，在 Support Files\AMT 目录下的application.xml文件的<Data key="installedLanguages">zh_CN</Data>节点中
-        private const string AE_INSTALLPATH = @"SOFTWARE\Adobe\After Effects";
+        private const string AE_INSTALLPATH_Reg = @"SOFTWARE\Adobe\After Effects";
         private const string AE_ExecutionName = "AfterFX.exe";
         private const string AE_Lang_EN = "en_US";
         private const string AE_Lang_CN = "zh_CN";
         private const string AppConfigPath = "AppConfig.ini";
-        private const string AE_ProfileName1 = "\\painter.ini";
-        private const string AE_ProfileName2 = "\\AMT\\application.xml";
+        private const string AE_ProfileName1 = "painter.ini";
+        private const string AE_ProfileName2 = "AMT\\application.xml";
+        private string AE_InstallPath = "";
 
         public Form1()
         {
@@ -38,19 +39,30 @@ namespace AELanguageSwitcher
             {
                 StringBuilder sb = new StringBuilder();
                 ProfileHelper.GetPrivateProfileString("Main", "Path", "", sb, 512, AppConfigPath);
-                TextBox_AEInstallPath.Text = sb.ToString();
+                if(File.Exists( sb.ToString()))
+                {
+                    TextBox_AEInstallPath.Text = sb.ToString();
+                }
+                else
+                {
+                    TextBox_AEInstallPath.Text = GetAEInstallPath();
+                }
             }
             else
             {
                 TextBox_AEInstallPath.Text = GetAEInstallPath();
             }
-            if(File.Exists(AE_ProfileName1))
-            {
-                ReadConfig(AE_ProfileName1, "ini");
-            }
-            else if(File.Exists(AE_ProfileName2))
-            {
+            AE_InstallPath = TextBox_AEInstallPath.Text;
 
+            TextBox_AEInstallPath.Select(0, 0);
+
+            if(File.Exists(AE_InstallPath + AE_ProfileName1))
+            {
+                ReadConfig(AE_InstallPath + AE_ProfileName1, "ini");
+            }
+            else if(File.Exists(AE_InstallPath + AE_ProfileName2))
+            {
+                ReadConfig(AE_InstallPath + AE_ProfileName2, "xml");
             }
         }
         /// <summary>
@@ -59,12 +71,12 @@ namespace AELanguageSwitcher
         /// <returns></returns>
         private string GetAEInstallPath()
         {
-            RegistryKey localKey = null;
+            RegistryKey localKey;
             try
             {
                 //判断系统架构，然后选择打开32位还是64位注册表
                 localKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Registry32);
-                var AEPath = localKey.OpenSubKey(AE_INSTALLPATH, false);
+                var AEPath = localKey.OpenSubKey(AE_INSTALLPATH_Reg, false);
                 var finder1 = AEPath.OpenSubKey(AEPath.GetSubKeyNames()[0],false);
 
                 return finder1.GetValue("InstallPath", string.Empty).ToString();
@@ -128,7 +140,23 @@ namespace AELanguageSwitcher
                                 {
                                     if(reader.GetAttribute("key") == "installedLanguages")
                                     {
-                                        //TODO: 读取xml文件
+                                        if(reader.Read())
+                                        {
+                                            string v = reader.Value;
+                                            if (v.ToUpper() == "ZH_CN")
+                                            {
+                                                ComboBox_LanguageList.SelectedIndex = 1;
+                                            }
+                                            else if (v.ToUpper() == "EN_US")
+                                            {
+                                                ComboBox_LanguageList.SelectedIndex = 2;
+                                            }
+                                            else
+                                            {
+                                                ComboBox_LanguageList.SelectedIndex = 0;
+                                            }
+                                        }
+                                        
                                     }
                                 }
                             }
@@ -143,16 +171,15 @@ namespace AELanguageSwitcher
 
         private void Btn_SetLanguage_Click(object sender, EventArgs e)
         {
-            string profile = TextBox_AEInstallPath.Text + "\\" + AE_ConfigFileName;
-            if(File.Exists(profile))
+            if(File.Exists(AE_ProfileName1))
             {
                 if(ComboBox_LanguageList.SelectedIndex == 1)
                 {
-                    ProfileHelper.WritePrivateProfileString("Config", "Language", "zh_CN", profile);
+                    ProfileHelper.WritePrivateProfileString("Config", "Language", "zh_CN", AE_ProfileName1);
                 }
                 else if(ComboBox_LanguageList.SelectedIndex == 2)
                 {
-                    ProfileHelper.WritePrivateProfileString("Config", "Language", "en_US", profile);
+                    ProfileHelper.WritePrivateProfileString("Config", "Language", "en_US", AE_ProfileName1);
                 }
             }
 
@@ -171,15 +198,6 @@ namespace AELanguageSwitcher
                     }
                     
                 }
-            }
-        }
-
-        private void TextBox_AEInstallPath_TextChanged(object sender, EventArgs e)
-        {
-            string p = TextBox_AEInstallPath.Text + "\\" + AE_ConfigFileName;
-            if(File.Exists(p))
-            {
-                ReadConfig(p);
             }
         }
     }

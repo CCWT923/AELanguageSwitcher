@@ -56,7 +56,6 @@
             this.TextBox_AEInstallPath.Name = "TextBox_AEInstallPath";
             this.TextBox_AEInstallPath.Size = new System.Drawing.Size(208, 21);
             this.TextBox_AEInstallPath.TabIndex = 1;
-            this.TextBox_AEInstallPath.TextChanged += new System.EventHandler(this.TextBox_AEInstallPath_TextChanged);
             // 
             // flowLayoutPanel1
             // 
